@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import './App.css';
-import { BrowserRouter as Router, Route } from 'react-router-dom';
 import GiphyApi from './Services/api';
 import {DebounceInput} from 'react-debounce-input';
 
@@ -47,43 +46,43 @@ class App extends Component {
   }
 
   handleNextNavigation(e){
-    console.log('next', this.state.pagination)
+    const offset = this.state.pagination.offset;
+    const newOffset = offset + this.state.pagination.count;
 
-    const newOffset = this.state.pagination.offset + this.state.pagination.count;
     if(this.state.search === undefined){
       this.showTrending(newOffset);
       return;
     }
+
     this.search(this.state.search, newOffset)
   }
 
   handlePrevNavigation(e){
-    console.log('prev', this.state.pagination)
+    const offset = this.state.pagination.offset;
 
-    if(this.state.pagination.offset <= 0){
+    if(offset <= 0){
       return;
     }
 
-    const newOffset = this.state.pagination.offset - this.state.pagination.count;
+    const newOffset = offset - this.state.pagination.count;
+
     if(this.state.search === undefined){
       this.showTrending(newOffset);
       return;
     }
+
     this.search(this.state.search, newOffset)
   }
 
   render() {
     return (
-      <Router>
-         <div className="container-fluid">
-            <div className="starter-template">
-              <SearchInput onKeyUp={this.handleSearch}/>
-              <a href="#" onClick={this.handlePrevNavigation}>Prev</a>--
-              <a href="#" onClick={this.handleNextNavigation}>Next</a>
-            </div>
-            <ResultsContainer giphs={this.state.giphs} pagination={this.state.pagination} />
-          </div>
-      </Router>
+      <div className="container-fluid">
+        <div className="starter-template">
+          <SearchInput onKeyUp={this.handleSearch}/>
+          <Pagination prev={this.handlePrevNavigation} next={this.handleNextNavigation} pagination={this.state.pagination} />
+        </div>
+        <ResultsContainer giphs={this.state.giphs} pagination={this.state.pagination} />
+      </div>
     );
   }
 }
@@ -92,11 +91,30 @@ const SearchInput = (props) => (
   <DebounceInput className="form-control search-input" onChange={props.onKeyUp} debounceTimeout={300} />
 );
 
+const Pagination = (props) => {
+  const offset  = props.pagination.offset;
+  const count   = props.pagination.count;
+  const total   = props.pagination.total_count;
+  
+  if(offset === 0 && count === 0 && total === 0){
+    return(<div className="pagination"></div>);
+  }
+  
+  let page = (count > 0)? Math.round((offset/count) + 1) : 1;
+  
+  return(
+    <div className="pagination">
+      <a className="btn btn-info btn-xs" href="#" onClick={props.prev}>Prev</a>&nbsp;
+      <a className="btn btn-info btn-xs" href="#" onClick={props.next}>Next</a>
+    </div>
+  );
+}
+
 const ResultsContainer = (props) => {
   let content = <Results giphs={props.giphs} />;
 
-  if(props.giphs.length == 0){
-    content = <Giph className="center" url="https://media.giphy.com/media/l41lI4bYmcsPJX9Go/giphy.gif" />;    
+  if(props.giphs.length === 0){
+    //content = <Giph className="center" url="https://media.giphy.com/media/l41lI4bYmcsPJX9Go/giphy.gif" />;    
   }
 
   return(
@@ -112,7 +130,7 @@ const Results = (props) => (
        
        if(!giph.images.preview_gif){
          console.warn('giph broken ', giph);
-         return;
+         return false;
        }
 
        return(
