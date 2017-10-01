@@ -9,8 +9,9 @@ class App extends Component {
 
   state = {
     giphs: [],
+    search: undefined,
     pagination: {
-      count: 0,
+      count: 25,
       offset: 0,
       total_count: 0
     }
@@ -18,25 +19,57 @@ class App extends Component {
 
   constructor(props) {
     super(props);
-    this.handleSearch = this.handleSearch.bind(this);   
+    this.handleSearch          = this.handleSearch.bind(this);   
+    this.handleNextNavigation  = this.handleNextNavigation.bind(this);   
+    this.handlePrevNavigation  = this.handlePrevNavigation.bind(this);   
   }
 
   componentDidMount(){
-    GiphyApi.getTrending().then((response) => {
+   this.showTrending(0);
+  }
+
+  showTrending(offset){
+    GiphyApi.getTrending(offset).then((response) => {
       this.setState({giphs : response.data, pagination: response.pagination})
     });
   }
 
   handleSearch(e){
     let q = e.target.value;
-    this.search(q);
+    this.setState({search:q});
+    this.search(q, 0);
   }
 
-  search(q){
-    let offset = this.state.pagination.offset;
+  search(q, offset){
     GiphyApi.searchGifs(q, offset).then((response) => {
       this.setState({giphs : response.data, pagination: response.pagination})
     });
+  }
+
+  handleNextNavigation(e){
+    console.log('next', this.state.pagination)
+
+    const newOffset = this.state.pagination.offset + this.state.pagination.count;
+    if(this.state.search === undefined){
+      this.showTrending(newOffset);
+      return;
+    }
+    this.search(this.state.search, newOffset)
+  }
+
+  handlePrevNavigation(e){
+    console.log('prev', this.state.pagination)
+
+    if(this.state.pagination.offset <= 0){
+      return;
+    }
+
+    const newOffset = this.state.pagination.offset - this.state.pagination.count;
+    if(this.state.search === undefined){
+      this.showTrending(newOffset);
+      return;
+    }
+    this.search(this.state.search, newOffset)
   }
 
   render() {
@@ -44,8 +77,9 @@ class App extends Component {
       <Router>
          <div className="container-fluid">
             <div className="starter-template">
-              <h4>Search into giphy</h4>
               <SearchInput onKeyUp={this.handleSearch}/>
+              <a href="#" onClick={this.handlePrevNavigation}>Prev</a>--
+              <a href="#" onClick={this.handleNextNavigation}>Next</a>
             </div>
             <ResultsContainer giphs={this.state.giphs} pagination={this.state.pagination} />
           </div>
@@ -67,7 +101,6 @@ const ResultsContainer = (props) => {
 
   return(
     <div className="results-container">
-      <Pager pagination={props.pagination} />
       {content}
     </div>
   )
@@ -96,12 +129,6 @@ const Giph = (props) => {
     <img src={props.url} className={`rounded ${c}`} alt="..." />
   )
 }
-const Pager = (props) => {
-  console.log(props.pagination);
 
-  return (
-    <div></div>
-  );
-}
 
 export default App;
